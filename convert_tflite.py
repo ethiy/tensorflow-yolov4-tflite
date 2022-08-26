@@ -3,14 +3,14 @@ from absl import app, flags, logging
 from absl.flags import FLAGS
 import numpy as np
 import cv2
-from core.yolov4 import YOLOv4, YOLOv3, YOLOv3_tiny, decode
+from core.yolov4 import YOLOv4, YOLOv3, YOLOv3_tiny
 import core.utils as utils
 import os
-from core.config import cfg
 
 flags.DEFINE_string('weights', './checkpoints/yolov4-416', 'path to weights file')
 flags.DEFINE_string('output', './checkpoints/yolov4-416-fp32.tflite', 'path to output')
-flags.DEFINE_integer('input_size', 416, 'path to output')
+flags.DEFINE_integer('input_height', 480, 'image height')
+flags.DEFINE_integer('input_width', 640, 'image width')
 flags.DEFINE_string('quantize_mode', 'float32', 'quantize mode (int8, float16, float32)')
 flags.DEFINE_string('dataset', "/Volumes/Elements/data/coco_dataset/coco/5k.txt", 'path to dataset')
 
@@ -20,7 +20,7 @@ def representative_data_gen():
     if os.path.exists(fimage[input_value]):
       original_image=cv2.imread(fimage[input_value])
       original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
-      image_data = utils.image_preprocess(np.copy(original_image), [FLAGS.input_size, FLAGS.input_size])
+      image_data = utils.image_preprocess(np.copy(original_image), [FLAGS.input_height, FLAGS.input_width])
       img_in = image_data[np.newaxis, ...].astype(np.float32)
       print("calibration image {}".format(fimage[input_value]))
       yield [img_in]

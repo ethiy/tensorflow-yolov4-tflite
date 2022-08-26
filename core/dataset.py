@@ -21,15 +21,11 @@ class Dataset(object):
         self.annot_path = (
             cfg.TRAIN.ANNOT_PATH if is_training else cfg.TEST.ANNOT_PATH
         )
-        self.input_sizes = (
-            cfg.TRAIN.INPUT_SIZE if is_training else cfg.TEST.INPUT_SIZE
-        )
         self.batch_size = (
             cfg.TRAIN.BATCH_SIZE if is_training else cfg.TEST.BATCH_SIZE
         )
         self.data_aug = cfg.TRAIN.DATA_AUG if is_training else cfg.TEST.DATA_AUG
 
-        self.train_input_sizes = cfg.TRAIN.INPUT_SIZE
         self.classes = utils.read_class_names(cfg.YOLO.CLASSES)
         self.num_classes = len(self.classes)
         self.anchor_per_scale = cfg.YOLO.ANCHOR_PER_SCALE
@@ -82,15 +78,16 @@ class Dataset(object):
 
     def __next__(self):
         with tf.device("/cpu:0"):
-            # self.train_input_size = random.choice(self.train_input_sizes)
-            self.train_input_size = cfg.TRAIN.INPUT_SIZE
-            self.train_output_sizes = self.train_input_size // self.strides
+            self.train_input_height = cfg.TRAIN.INPUT_HEIGHT
+            self.train_input_width = cfg.TRAIN.INPUT_WIDTH
+            self.train_output_heights = self.train_input_height // self.strides
+            self.train_output_widths = self.train_input_width // self.strides
 
             batch_image = np.zeros(
                 (
                     self.batch_size,
-                    self.train_input_size,
-                    self.train_input_size,
+                    self.train_input_height,
+                    self.train_input_width,
                     3,
                 ),
                 dtype=np.float32,
@@ -99,8 +96,8 @@ class Dataset(object):
             batch_label_sbbox = np.zeros(
                 (
                     self.batch_size,
-                    self.train_output_sizes[0],
-                    self.train_output_sizes[0],
+                    self.train_output_heights,
+                    self.train_output_widths,
                     self.anchor_per_scale,
                     5 + self.num_classes,
                 ),
@@ -109,8 +106,8 @@ class Dataset(object):
             batch_label_mbbox = np.zeros(
                 (
                     self.batch_size,
-                    self.train_output_sizes[1],
-                    self.train_output_sizes[1],
+                    self.train_output_heights,
+                    self.train_output_widths,
                     self.anchor_per_scale,
                     5 + self.num_classes,
                 ),
@@ -119,8 +116,8 @@ class Dataset(object):
             batch_label_lbbox = np.zeros(
                 (
                     self.batch_size,
-                    self.train_output_sizes[2],
-                    self.train_output_sizes[2],
+                    self.train_output_heights,
+                    self.train_output_widths,
                     self.anchor_per_scale,
                     5 + self.num_classes,
                 ),
@@ -281,7 +278,7 @@ class Dataset(object):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image, bboxes = utils.image_preprocess(
             np.copy(image),
-            [self.train_input_size, self.train_input_size],
+            [self.train_input_height, self.train_input_width],
             np.copy(bboxes),
         )
         return image, bboxes
@@ -291,8 +288,8 @@ class Dataset(object):
         label = [
             np.zeros(
                 (
-                    self.train_output_sizes[i],
-                    self.train_output_sizes[i],
+                    self.train_output_heights[i],
+                    self.train_output_widths[i],
                     self.anchor_per_scale,
                     5 + self.num_classes,
                 )

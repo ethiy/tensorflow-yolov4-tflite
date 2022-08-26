@@ -16,34 +16,32 @@ from tensorflow.compat.v1 import InteractiveSession
 flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('weights', './checkpoints/yolov4-416',
                     'path to weights file')
-flags.DEFINE_integer('size', 416, 'resize images to')
+flags.DEFINE_integer('height', 480, 'resize images height to')
+flags.DEFINE_integer('width', 640, 'resize images width to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
 flags.DEFINE_string('image', './data/kite.jpg', 'path to input image')
 flags.DEFINE_string('output', 'result.png', 'path to output image')
 flags.DEFINE_float('iou', 0.45, 'iou threshold')
 flags.DEFINE_float('score', 0.25, 'score threshold')
+flags.DEFINE_string('classes', './data/classes/coco.names', 'File of class names')
 
 def main(_argv):
     config = ConfigProto()
     config.gpu_options.allow_growth = True
     session = InteractiveSession(config=config)
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
-    input_size = FLAGS.size
+    input_height = FLAGS.height
+    input_width = FLAGS.width
     image_path = FLAGS.image
 
     original_image = cv2.imread(image_path)
     original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
 
-    # image_data = utils.image_preprocess(np.copy(original_image), [input_size, input_size])
-    image_data = cv2.resize(original_image, (input_size, input_size))
+    image_data = cv2.resize(original_image, (input_height, input_width))
     image_data = image_data / 255.
-    # image_data = image_data[np.newaxis, ...].astype(np.float32)
 
-    images_data = []
-    for i in range(1):
-        images_data.append(image_data)
-    images_data = np.asarray(images_data).astype(np.float32)
+    images_data = np.asarray([image_data]).astype(np.float32)
 
     if FLAGS.framework == 'tflite':
         interpreter = tf.lite.Interpreter(model_path=FLAGS.weights)
@@ -56,9 +54,9 @@ def main(_argv):
         interpreter.invoke()
         pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
         if FLAGS.model == 'yolov3' and FLAGS.tiny == True:
-            boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25, input_shape=tf.constant([input_size, input_size]))
+            boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25, input_shape=tf.constant([input_height, input_width]))
         else:
-            boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25, input_shape=tf.constant([input_size, input_size]))
+            boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25, input_shape=tf.constant([input_height, input_width]))
     else:
         saved_model_loaded = tf.saved_model.load(FLAGS.weights, tags=[tag_constants.SERVING])
         infer = saved_model_loaded.signatures['serving_default']

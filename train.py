@@ -31,7 +31,7 @@ def main(_argv):
     total_steps = (first_stage_epochs + second_stage_epochs) * steps_per_epoch
     # train_steps = (first_stage_epochs + second_stage_epochs) * steps_per_period
 
-    input_layer = tf.keras.layers.Input([cfg.TRAIN.INPUT_SIZE, cfg.TRAIN.INPUT_SIZE, 3])
+    input_layer = tf.keras.layers.Input([cfg.TRAIN.INPUT_HEIGHT, cfg.TRAIN.INPUT_WIDTH, 3])
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
     IOU_LOSS_THRESH = cfg.YOLO.IOU_LOSS_THRESH
 
@@ -42,20 +42,20 @@ def main(_argv):
         bbox_tensors = []
         for i, fm in enumerate(feature_maps):
             if i == 0:
-                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_SIZE // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_HEIGHT // 16, cfg.TRAIN.INPUT_WIDTH // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
             else:
-                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_SIZE // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_HEIGHT // 32, cfg.TRAIN.INPUT_WIDTH // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
             bbox_tensors.append(fm)
             bbox_tensors.append(bbox_tensor)
     else:
         bbox_tensors = []
         for i, fm in enumerate(feature_maps):
             if i == 0:
-                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_SIZE // 8, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_HEIGHT // 8, cfg.TRAIN.INPUT_WIDTH // 8, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
             elif i == 1:
-                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_SIZE // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_HEIGHT // 16, cfg.TRAIN.INPUT_WIDTH // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
             else:
-                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_SIZE // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+                bbox_tensor = decode_train(fm, cfg.TRAIN.INPUT_HEIGHT // 32, cfg.TRAIN.INPUT_WIDTH // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
             bbox_tensors.append(fm)
             bbox_tensors.append(bbox_tensor)
 

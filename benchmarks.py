@@ -16,7 +16,8 @@ flags.DEFINE_string('framework', 'tf', '(tf, tflite, trt')
 flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
 flags.DEFINE_string('weights', './data/yolov4.weights', 'path to weights file')
 flags.DEFINE_string('image', './data/kite.jpg', 'path to input image')
-flags.DEFINE_integer('size', 416, 'resize images to')
+flags.DEFINE_integer('input_height', 480, 'image height')
+flags.DEFINE_integer('input_width', 640, 'image width')
 
 
 def main(_argv):
@@ -35,12 +36,13 @@ def main(_argv):
     config = ConfigProto()
     config.gpu_options.allow_growth = True
     session = InteractiveSession(config=config)
-    input_size = FLAGS.size
+    input_height = FLAGS.height
+    input_width = FLAGS.width
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
     if len(physical_devices) > 0:
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
     if FLAGS.framework == 'tf':
-        input_layer = tf.keras.layers.Input([input_size, input_size, 3])
+        input_layer = tf.keras.layers.Input([input_height, input_width, 3])
         if FLAGS.tiny:
             feature_maps = YOLOv3_tiny(input_layer, NUM_CLASS)
             bbox_tensors = []
