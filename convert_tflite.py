@@ -13,6 +13,7 @@ flags.DEFINE_integer('input_height', 480, 'image height')
 flags.DEFINE_integer('input_width', 640, 'image width')
 flags.DEFINE_string('quantize_mode', 'float32', 'quantize mode (int8, float16, float32)')
 flags.DEFINE_string('dataset', "/Volumes/Elements/data/coco_dataset/coco/5k.txt", 'path to dataset')
+flags.DEFINE_boolean('with_images', False, 'Include images.')
 
 def representative_data_gen():
   fimage = open(FLAGS.dataset).read().split()
@@ -40,7 +41,8 @@ def save_tflite():
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
     converter.allow_custom_ops = True
-    converter.representative_dataset = representative_data_gen
+    if FLAGS.with_images:
+      converter.representative_dataset = representative_data_gen
 
   tflite_model = converter.convert()
   open(FLAGS.output, 'wb').write(tflite_model)
@@ -69,7 +71,8 @@ def demo():
 
 def main(_argv):
   save_tflite()
-  demo()
+  if FLAGS.quantize_mode != "int8":
+    demo()
 
 if __name__ == '__main__':
     try:
