@@ -18,12 +18,8 @@ class Dataset(object):
         self.strides, self.anchors, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
         self.dataset_type = dataset_type
 
-        self.annot_path = (
-            cfg.TRAIN.ANNOT_PATH if is_training else cfg.TEST.ANNOT_PATH
-        )
-        self.batch_size = (
-            cfg.TRAIN.BATCH_SIZE if is_training else cfg.TEST.BATCH_SIZE
-        )
+        self.annot_path = cfg.TRAIN.ANNOT_PATH if is_training else cfg.TEST.ANNOT_PATH
+        self.batch_size = cfg.TRAIN.BATCH_SIZE if is_training else cfg.TEST.BATCH_SIZE
         self.data_aug = cfg.TRAIN.DATA_AUG if is_training else cfg.TEST.DATA_AUG
 
         self.classes = utils.read_class_names(cfg.YOLO.CLASSES)
@@ -41,9 +37,7 @@ class Dataset(object):
             txt = f.readlines()
             if self.dataset_type == "converted_coco":
                 annotations = [
-                    line.strip()
-                    for line in txt
-                    if len(line.strip().split()[1:]) != 0
+                    line.strip() for line in txt if len(line.strip().split()[1:]) != 0
                 ]
             elif self.dataset_type == "yolo":
                 annotations = []
@@ -201,18 +195,10 @@ class Dataset(object):
             max_r_trans = w - max_bbox[2]
             max_d_trans = h - max_bbox[3]
 
-            crop_xmin = max(
-                0, int(max_bbox[0] - random.uniform(0, max_l_trans))
-            )
-            crop_ymin = max(
-                0, int(max_bbox[1] - random.uniform(0, max_u_trans))
-            )
-            crop_xmax = max(
-                w, int(max_bbox[2] + random.uniform(0, max_r_trans))
-            )
-            crop_ymax = max(
-                h, int(max_bbox[3] + random.uniform(0, max_d_trans))
-            )
+            crop_xmin = max(0, int(max_bbox[0] - random.uniform(0, max_l_trans)))
+            crop_ymin = max(0, int(max_bbox[1] - random.uniform(0, max_u_trans)))
+            crop_xmax = max(w, int(max_bbox[2] + random.uniform(0, max_r_trans)))
+            crop_ymax = max(h, int(max_bbox[3] + random.uniform(0, max_d_trans)))
 
             image = image[crop_ymin:crop_ymax, crop_xmin:crop_xmax]
 
@@ -255,25 +241,17 @@ class Dataset(object):
             raise KeyError("%s does not exist ... " % image_path)
         image = cv2.imread(image_path)
         if self.dataset_type == "converted_coco":
-            bboxes = np.array(
-                [list(map(int, box.split(","))) for box in line[1:]]
-            )
+            bboxes = np.array([list(map(int, box.split(","))) for box in line[1:]])
         elif self.dataset_type == "yolo":
             height, width, _ = image.shape
-            bboxes = np.array(
-                [list(map(float, box.split(","))) for box in line[1:]]
-            )
+            bboxes = np.array([list(map(float, box.split(","))) for box in line[1:]])
             bboxes = bboxes * np.array([width, height, width, height, 1])
             bboxes = bboxes.astype(np.int64)
 
         if self.data_aug:
-            image, bboxes = self.random_horizontal_flip(
-                np.copy(image), np.copy(bboxes)
-            )
+            image, bboxes = self.random_horizontal_flip(np.copy(image), np.copy(bboxes))
             image, bboxes = self.random_crop(np.copy(image), np.copy(bboxes))
-            image, bboxes = self.random_translate(
-                np.copy(image), np.copy(bboxes)
-            )
+            image, bboxes = self.random_translate(np.copy(image), np.copy(bboxes))
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image, bboxes = utils.image_preprocess(
@@ -282,7 +260,6 @@ class Dataset(object):
             np.copy(bboxes),
         )
         return image, bboxes
-
 
     def preprocess_true_boxes(self, bboxes):
         label = [
@@ -305,9 +282,7 @@ class Dataset(object):
 
             onehot = np.zeros(self.num_classes, dtype=np.float)
             onehot[bbox_class_ind] = 1.0
-            uniform_distribution = np.full(
-                self.num_classes, 1.0 / self.num_classes
-            )
+            uniform_distribution = np.full(self.num_classes, 1.0 / self.num_classes)
             deta = 0.01
             smooth_onehot = onehot * (1 - deta) + deta * uniform_distribution
 
@@ -338,9 +313,7 @@ class Dataset(object):
                 iou_mask = iou_scale > 0.3
 
                 if np.any(iou_mask):
-                    xind, yind = np.floor(bbox_xywh_scaled[i, 0:2]).astype(
-                        np.int32
-                    )
+                    xind, yind = np.floor(bbox_xywh_scaled[i, 0:2]).astype(np.int32)
 
                     label[i][yind, xind, iou_mask, :] = 0
                     label[i][yind, xind, iou_mask, 0:4] = bbox_xywh
@@ -357,18 +330,16 @@ class Dataset(object):
                 best_anchor_ind = np.argmax(np.array(iou).reshape(-1), axis=-1)
                 best_detect = int(best_anchor_ind / self.anchor_per_scale)
                 best_anchor = int(best_anchor_ind % self.anchor_per_scale)
-                xind, yind = np.floor(
-                    bbox_xywh_scaled[best_detect, 0:2]
-                ).astype(np.int32)
+                xind, yind = np.floor(bbox_xywh_scaled[best_detect, 0:2]).astype(
+                    np.int32
+                )
 
                 label[best_detect][yind, xind, best_anchor, :] = 0
                 label[best_detect][yind, xind, best_anchor, 0:4] = bbox_xywh
                 label[best_detect][yind, xind, best_anchor, 4:5] = 1.0
                 label[best_detect][yind, xind, best_anchor, 5:] = smooth_onehot
 
-                bbox_ind = int(
-                    bbox_count[best_detect] % self.max_bbox_per_scale
-                )
+                bbox_ind = int(bbox_count[best_detect] % self.max_bbox_per_scale)
                 bboxes_xywh[best_detect][bbox_ind, :4] = bbox_xywh
                 bbox_count[best_detect] += 1
         label_sbbox, label_mbbox, label_lbbox = label
