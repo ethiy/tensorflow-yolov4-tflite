@@ -1,8 +1,9 @@
+import time
 import tensorflow as tf
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
 if len(physical_devices) > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
-from absl import app, flags, logging
+from absl import app, flags
 from absl.flags import FLAGS
 import core.utils as utils
 from core.yolov4 import filter_boxes
@@ -43,6 +44,7 @@ def main(_argv):
 
     images_data = np.asarray([image_data]).astype(np.float32)
 
+    start_time = time.time()
     if FLAGS.framework == 'tflite':
         interpreter = tf.lite.Interpreter(model_path=FLAGS.weights)
         interpreter.allocate_tensors()
@@ -62,7 +64,7 @@ def main(_argv):
         infer = saved_model_loaded.signatures['serving_default']
         batch_data = tf.constant(images_data)
         pred_bbox = infer(batch_data)
-        for key, value in pred_bbox.items():
+        for _, value in pred_bbox.items():
             boxes = value[:, :, 0:4]
             pred_conf = value[:, :, 4:]
 
@@ -75,9 +77,9 @@ def main(_argv):
         iou_threshold=FLAGS.iou,
         score_threshold=FLAGS.score
     )
+    print("Runtime:", time.time() - start_time)
     pred_bbox = [boxes.numpy(), scores.numpy(), classes.numpy(), valid_detections.numpy()]
-    image = utils.draw_bbox(original_image, pred_bbox)
-    # image = utils.draw_bbox(image_data*255, pred_bbox)
+    image = utils.draw_bbox(original_image, pred_bbox, classes=utils.read_class_names(FLAGS.classes))
     image = Image.fromarray(image.astype(np.uint8))
     image.show()
     image = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB)
